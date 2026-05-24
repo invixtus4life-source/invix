@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INVIXTUS | Institutional Yield Management</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js for Subtle Background -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Chart.js for Projections -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts: Inter (Highly legible, professional) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            bg: '#ffffff',       // Pure white
+                            bgAlt: '#f8fafc',    // Slate 50 (light gray for sections)
+                            primary: '#ea580c',  // Orange 600 (Main Action Color)
+                            primaryHover: '#c2410c', // Orange 700
+                            primaryLight: '#ffedd5', // Orange 100
+                            success: '#16a34a',  // Green 600 (Financials/Growth)
+                            successLight: '#dcfce7', // Green 100
+                            textDark: '#0f172a', // Slate 900 (Headings)
+                            textMuted: '#475569', // Slate 600 (Body text)
+                            border: '#e2e8f0',   // Slate 200
+                        }
+                    },
+                    boxShadow: {
+                        'premium': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'premium-hover': '0 20px 40px -10px rgba(234, 88, 12, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #ffffff;
+            color: #475569;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* 3D Background Container - Very subtle on white */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            opacity: 0.4; 
+            pointer-events: none;
+        }
+
+        /* Professional Card Styling */
+        .corp-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .corp-card:hover {
+            border-color: #ea580c;
+            box-shadow: 0 20px 40px -10px rgba(234, 88, 12, 0.1);
+            transform: translateY(-4px);
+        }
+
+        /* Smooth Top Navigation */
+        .nav-backdrop {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        /* SPA Routing Classes */
+        .page-view {
+            display: none;
+            opacity: 0;
+        }
+        .page-view.active {
+            display: block;
+            animation: softFadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes softFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Scroll Reveal Animation Classes */
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Elegant Range Slider (Orange Theme) */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #ea580c;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(234, 88, 12, 0.3);
+            border: 2px solid #fff;
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 3px;
+        }
+        
+        /* Navigation Links */
+        .nav-link {
+            position: relative;
+            color: #475569;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .nav-link:hover { color: #ea580c; }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -6px;
+            left: 0;
+            background-color: #ea580c;
+            transition: width 0.3s ease;
+        }
+        .nav-link.active {
+            color: #ea580c;
+        }
+        .nav-link.active::after {
+            width: 100%;
+        }
+
+        /* Mobile Menu Transitions */
+        #mobile-menu {
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        #mobile-menu.open {
+            max-height: 400px;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="selection:bg-brand-primaryLight selection:text-brand-primary flex flex-col min-h-screen">
+
+    <!-- Subtle Geometric Background -->
+    <div id="canvas-container"></div>
+
+    <nav class="fixed w-full z-50 nav-backdrop">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                
+                <!-- Logo -->
+                <a href="#home" class="flex items-center gap-3 group">
+                    <div class="w-10 h-10 flex items-center justify-center bg-brand-primary rounded-lg shadow-md">
+                        <i class="fa-solid fa-chart-pie text-white text-lg"></i>
+                    </div>
+                    <span class="font-bold text-2xl tracking-tight text-brand-textDark">INVIXTUS</span>
+                </a>
+                
+                <!-- Desktop Navigation Links -->
+                <div class="hidden md:flex space-x-8">
+                    <a href="#home" class="nav-link text-sm" data-target="home">Overview</a>
+                    <a href="#methodology" class="nav-link text-sm" data-target="methodology">Methodology</a>
+                    <a href="#allocations" class="nav-link text-sm" data-target="allocations">Allocations</a>
+                    <a href="#performance" class="nav-link text-sm" data-target="performance">Projections</a>
+                    <a href="#partnership" class="nav-link text-sm" data-target="partnership">Partnership</a>
+                    <a href="#framework" class="nav-link text-sm" data-target="framework">Security</a>
+                </div>
+                
+                <!-- CTA -->
+                <div class="hidden md:block">
+                    <button class="bg-brand-primary hover:bg-brand-primaryHover text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg">
+                        Client Portal
+                    </button>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-btn" class="text-brand-textDark hover:text-brand-primary focus:outline-none p-2">
+                        <i class="fa-solid fa-bars text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="md:hidden bg-white border-b border-brand-border absolute w-full shadow-lg">
+            <div class="px-6 py-4 space-y-3 flex flex-col">
+                <a href="#home" class="mobile-nav-link text-brand-textMuted hover:text-brand-primary block py-2 text-base font-medium" data-target="home">Overview</a>
+                <a href="#methodology" class="mobile-nav-link text-brand-textMuted hover:text-brand-primary block py-2 text-base font-medium" data-target="methodology">Methodology</a>
+                <a href="#allocations" class="mobile-nav-link text-brand-textMuted hover:text-brand-primary block py-2 text-base font-medium" data-target="allocations">Allocations</a>
+                <a href="#performance" class="mobile-nav-link text-brand-textMuted hover:text-brand-primary block py-2 text-base font-medium" data-target="performance">Projections</a>
+                <a href="#partnership" class="mobile-nav-link text-brand-textMuted hover:text-brand-primary block py-2 text-base font-medium" data-target="partnership">Partnership</a>
+                <a href="#framework" class="mobile-nav-link text-brand-textMuted hover:text-brand-primary block py-2 text-base font-medium" data-target="framework">Security Details</a>
+                <button class="w-full mt-4 bg-brand-primary text-white px-4 py-3 rounded-lg text-sm font-semibold shadow-md">
+                    Access Portal
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow pt-20 relative z-10">
+        
+        <!-- ================= PAGE: HOME ================= -->
+        <div id="view-home" class="page-view active">
+            <section class="min-h-[85vh] flex items-center py-16 md:py-24">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+                        <div class="reveal text-center lg:text-left">
+                            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-primaryLight border border-brand-primary/20 text-brand-primary text-xs font-bold uppercase tracking-wide mb-6">
+                                <span class="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></span> Institutional Asset Management
+                            </div>
+                            
+                            <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-brand-textDark mb-6 leading-tight">
+                                Predictable Yield.<br />
+                                <span class="text-brand-primary">Uncompromising Security.</span>
+                            </h1>
+                            
+                            <p class="text-base md:text-lg text-brand-textMuted leading-relaxed mb-8 max-w-2xl mx-auto lg:mx-0">
+                                Invixtus specializes in quantitative foreign exchange (FX) operations. We manage the complexity of global markets so you don't have to. Secure your principal and receive a fixed, contracted monthly yield of <strong class="text-brand-textDark">3.0% to 5.0%</strong>.
+                            </p>
+
+                            <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                                <a href="#allocations" class="bg-brand-primary text-white px-8 py-3.5 rounded-lg font-semibold text-base text-center hover:bg-brand-primaryHover transition-all shadow-md hover:shadow-lg">
+                                    View Yield Allocations
+                                </a>
+                                <a href="#framework" class="bg-white text-brand-textDark border border-brand-border px-8 py-3.5 rounded-lg font-semibold text-base text-center hover:bg-brand-bgAlt transition-all flex items-center justify-center gap-2 shadow-sm">
+                                    <i class="fa-solid fa-shield-halved text-brand-success"></i> Review Risk Framework
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Metrics Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 reveal" style="transition-delay: 0.2s;">
+                            <div class="corp-card p-6 md:p-8 text-center sm:text-left">
+                                <div class="w-12 h-12 rounded-full bg-brand-successLight flex items-center justify-center mb-4 mx-auto sm:mx-0">
+                                    <i class="fa-solid fa-chart-line text-brand-success text-xl"></i>
+                                </div>
+                                <div class="text-brand-textMuted text-xs font-bold uppercase tracking-wider mb-1">Target Yield</div>
+                                <div class="text-2xl md:text-3xl font-extrabold text-brand-textDark">3% - 5% <span class="text-sm font-medium text-brand-textMuted">/mo</span></div>
+                            </div>
+                            <div class="corp-card p-6 md:p-8 text-center sm:text-left">
+                                <div class="w-12 h-12 rounded-full bg-brand-primaryLight flex items-center justify-center mb-4 mx-auto sm:mx-0">
+                                    <i class="fa-solid fa-globe text-brand-primary text-xl"></i>
+                                </div>
+                                <div class="text-brand-textMuted text-xs font-bold uppercase tracking-wider mb-1">Asset Class</div>
+                                <div class="text-xl md:text-2xl font-bold text-brand-textDark">Foreign Exchange</div>
+                            </div>
+                            <div class="corp-card p-6 md:p-8 text-center sm:text-left">
+                                <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-4 mx-auto sm:mx-0">
+                                    <i class="fa-solid fa-lock text-slate-600 text-xl"></i>
+                                </div>
+                                <div class="text-brand-textMuted text-xs font-bold uppercase tracking-wider mb-1">Capital Protection</div>
+                                <div class="text-xl md:text-2xl font-bold text-brand-textDark">60% Reserve</div>
+                            </div>
+                            <div class="corp-card p-6 md:p-8 text-center sm:text-left">
+                                <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-4 mx-auto sm:mx-0">
+                                    <i class="fa-solid fa-user-tie text-blue-500 text-xl"></i>
+                                </div>
+                                <div class="text-brand-textMuted text-xs font-bold uppercase tracking-wider mb-1">Client Strategy</div>
+                                <div class="text-xl md:text-2xl font-bold text-brand-textDark">Fully Passive</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ================= PAGE: METHODOLOGY ================= -->
+        <div id="view-methodology" class="page-view bg-brand-bgAlt border-y border-brand-border">
+            <section class="py-16 md:py-24">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center max-w-3xl mx-auto mb-16 reveal">
+                        <h2 class="text-3xl md:text-4xl font-extrabold text-brand-textDark mb-4">How We Generate Yield</h2>
+                        <p class="text-base md:text-lg text-brand-textMuted leading-relaxed">
+                            Generating consistent, robust returns in the global Forex market requires institutional discipline. Our objective is to generate profit; your objective is to receive it. We do not offer trading signals or courses—we offer a fiduciary result.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                        <div class="corp-card p-8 reveal text-center md:text-left">
+                            <div class="w-14 h-14 rounded-2xl bg-brand-primaryLight flex items-center justify-center mb-6 mx-auto md:mx-0">
+                                <i class="fa-solid fa-microchip text-2xl text-brand-primary"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-brand-textDark mb-3">Algorithmic Execution</h3>
+                            <p class="text-sm text-brand-textMuted leading-relaxed">
+                                Our proprietary quantitative models scan major currency pairs for micro-inefficiencies. Trades are executed without human emotion, ensuring strict adherence to our statistical risk parameters.
+                            </p>
+                        </div>
+                        <div class="corp-card p-8 reveal" style="transition-delay: 0.1s;">
+                            <div class="w-14 h-14 rounded-2xl bg-brand-successLight flex items-center justify-center mb-6 mx-auto md:mx-0">
+                                <i class="fa-solid fa-chart-pie text-2xl text-brand-success"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-brand-textDark mb-3 text-center md:text-left">Market Independence</h3>
+                            <p class="text-sm text-brand-textMuted leading-relaxed text-center md:text-left">
+                                The Forex market operates independently of traditional equities. Our systems are engineered to generate your fixed yield regardless of whether global stock markets are experiencing a bull or bear phase.
+                            </p>
+                        </div>
+                        <div class="corp-card p-8 reveal" style="transition-delay: 0.2s;">
+                            <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-6 mx-auto md:mx-0">
+                                <i class="fa-solid fa-handshake-angle text-2xl text-blue-600"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-brand-textDark mb-3 text-center md:text-left">Fiduciary Obligation</h3>
+                            <p class="text-sm text-brand-textMuted leading-relaxed text-center md:text-left">
+                                We operate strictly as capital managers. Our contractual obligation to you is fulfilling the designated monthly profit distributions based on your selected capital allocation tier.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ================= PAGE: ALLOCATIONS (TIERS) ================= -->
+        <div id="view-allocations" class="page-view">
+            <section class="py-16 md:py-24">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center mb-16 reveal">
+                        <h2 class="text-3xl md:text-4xl font-extrabold text-brand-textDark mb-4">Capital Allocation Tranches</h2>
+                        <p class="text-base md:text-lg text-brand-textMuted max-w-2xl mx-auto">
+                            Monthly yield distributions are directly correlated to the volume of capital deployed. Select the financial tranche that best aligns with your investment goals.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-center max-w-6xl mx-auto">
+                        
+                        <!-- Tranche 1 -->
+                        <div class="corp-card p-8 md:p-10 reveal">
+                            <div class="text-brand-textMuted text-xs font-bold uppercase tracking-wider mb-2">Tier I Allocation</div>
+                            <h3 class="text-2xl font-bold text-brand-textDark mb-4">Standard Access</h3>
+                            <div class="flex items-baseline gap-2 mb-6 border-b border-brand-border pb-6">
+                                <span class="text-4xl font-extrabold text-brand-primary">3.0%</span>
+                                <span class="text-brand-textMuted text-sm font-medium">/ month</span>
+                            </div>
+                            <ul class="space-y-4 mb-8 text-sm">
+                                <li class="flex justify-between items-center">
+                                    <span class="text-brand-textMuted">Minimum Deposit</span>
+                                    <span class="text-brand-textDark font-bold">$100</span>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span class="text-brand-textMuted">Maximum Limit</span>
+                                    <span class="text-brand-textDark font-bold">$499</span>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span class="text-brand-textMuted">Profit Disbursement</span>
+                                    <span class="text-brand-textDark font-bold">45 Days</span>
+                                </li>
+                            </ul>
+                            <button class="w-full bg-white border-2 border-brand-primary text-brand-primary hover:bg-brand-primaryLight py-3 rounded-lg text-sm font-bold transition-colors">Initiate Tier I</button>
+                        </div>
+
+                        <!-- Tranche 2 (Featured) -->
+                        <div class="corp-card p-8 md:p-10 border-2 border-brand-success relative transform lg:-translate-y-4 shadow-xl reveal" style="transition-delay: 0.1s;">
+                            <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-brand-success text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md">
+                                Most Popular
+                            </div>
+                            <div class="text-brand-success text-xs font-bold uppercase tracking-wider mb-2">Tier II Allocation</div>
+                            <h3 class="text-2xl font-bold text-brand-textDark mb-4">Premium Portfolio</h3>
+                            <div class="flex items-baseline gap-2 mb-6 border-b border-brand-border pb-6">
+                                <span class="text-5xl font-extrabold text-brand-success">4.0%</span>
+                                <span class="text-brand-textMuted text-sm font-medium">/ month</span>
+                            </div>
+                            <ul class="space-y-4 mb-8 text-sm">
+                                <li class="flex justify-between items-center">
+                                    <span class="text-brand-textMuted">Minimum Deposit</span>
+                                    <span class="text-brand-textDark font-bold">$500</span>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span class="text-brand-textMuted">Maximum Limit</span>
+                                    <span class="text-brand-textDark font-bold">$999</span>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span class="text-brand-textMuted">Profit Disbursement</span>
+                                    <span class="text-brand-textDark font-bold">45 Days</span>
+                                </li>
+                            </ul>
+                            <button class="w-full bg-brand-success hover:bg-green-700 text-white shadow-md py-3 rounded-lg text-sm font-bold transition-colors">Initiate Tier II</button>
+                        </div>
+
+                        <!-- Tranche 3 -->
+                        <div class="corp-card p-8 md:p-10 reveal" style="transition-delay: 0.2s;">
+                            <div class="text-brand-textMuted text-xs font-bold uppercase tracking-wider mb-2">Tier III Allocation</div>
+                            <h3 class="text-2xl font-bold text-brand-textDark mb-4">Elite Consortium</h3>
+                            <div class="flex items-baseline gap-2 mb-6 border-b border-brand-border pb-6">
+                                <span class="text-4xl font-extrabold text-brand-primary">5.0%</span>
+                                <span class="text-brand-textMuted text-sm font-medium">/ month</span>
+                            </div>
+                            <ul class="space-y-4 mb-8 text-sm">
+                                <li class="flex justify-between items-center">
+                                    <span class="text-brand-textMuted">Minimum Deposit</span>
+                                    <span class="text-brand-textDark font-bold">$1,000</span>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span class="text-brand-textMuted">Maximum Limit</span>
+                                    <span class="text-brand-textDark font-bold">Uncapped</span>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span class="text-brand-textMuted">Profit Disbursement</span>
+                                    <span class="text-brand-textDark font-bold">45 Days</span>
+                                </li>
+                            </ul>
+                            <button class="w-full bg-white border-2 border-brand-primary text-brand-primary hover:bg-brand-primaryLight py-3 rounded-lg text-sm font-bold transition-colors">Initiate Tier III</button>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ================= PAGE: PERFORMANCE (PROJECTIONS) ================= -->
+        <div id="view-performance" class="page-view bg-brand-bgAlt border-y border-brand-border">
+            <section class="py-16 md:py-24">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center mb-16 reveal">
+                        <h2 class="text-3xl md:text-4xl font-extrabold text-brand-textDark mb-4">Compound Yield Simulator</h2>
+                        <p class="text-brand-textMuted max-w-2xl mx-auto">
+                            Model your portfolio's growth trajectory. Our calculator automatically applies the correct yield bracket (3%, 4%, or 5% monthly) based on your selected principal amount.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 reveal">
+                        
+                        <!-- Calculator Input -->
+                        <div class="corp-card p-6 md:p-8 lg:col-span-1 flex flex-col justify-between">
+                            <div>
+                                <h3 class="text-sm font-bold text-brand-textDark uppercase tracking-wider mb-6 border-b border-brand-border pb-4">Simulation Variables</h3>
+                                
+                                <div class="mb-8">
+                                    <div class="flex justify-between items-end mb-4">
+                                        <label class="text-sm font-medium text-brand-textMuted">Initial Capital</label>
+                                        <span class="text-2xl font-bold text-brand-primary" id="deposit-display">$1,000</span>
+                                    </div>
+                                    <input type="range" id="deposit-slider" min="100" max="25000" step="100" value="1000">
+                                </div>
+
+                                <div class="mb-8">
+                                    <div class="flex justify-between items-end mb-4">
+                                        <label class="text-sm font-medium text-brand-textMuted">Time Horizon</label>
+                                        <span class="text-xl font-bold text-brand-textDark" id="months-display">24 Months</span>
+                                    </div>
+                                    <input type="range" id="months-slider" min="6" max="60" step="6" value="24">
+                                </div>
+                            </div>
+
+                            <div class="bg-brand-bgAlt rounded-xl p-6 border border-brand-border mt-4">
+                                <div class="text-sm font-medium text-brand-textMuted mb-2">Projected Future Value</div>
+                                <div class="text-4xl font-extrabold text-brand-success tracking-tight" id="total-value">$3,225</div>
+                                <div class="flex items-center gap-2 mt-4 text-xs font-medium">
+                                    <span class="w-2 h-2 rounded-full bg-brand-primary"></span>
+                                    <span class="text-brand-textDark" id="tier-status">Applying 5% Elite Rate</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Canvas Chart Container -->
+                        <div class="corp-card p-6 md:p-8 lg:col-span-2 h-[400px] md:h-[500px] flex flex-col">
+                            <div class="flex justify-between items-center mb-6 border-b border-brand-border pb-4">
+                                <h3 class="text-sm font-bold text-brand-textDark uppercase tracking-wider">Growth Trajectory</h3>
+                                <div class="text-xs font-medium text-brand-textMuted bg-slate-100 px-3 py-1 rounded-full">Values in USD</div>
+                            </div>
+                            <!-- Relative wrapper is crucial for Chart.js responsiveness -->
+                            <div class="relative w-full flex-grow">
+                                <canvas id="growthChart"></canvas>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ================= PAGE: PARTNERSHIP ================= -->
+        <div id="view-partnership" class="page-view">
+            <section class="py-16 md:py-24">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center mb-16 reveal">
+                        <h2 class="text-3xl md:text-4xl font-extrabold text-brand-textDark mb-6">Introducing Broker (IB) Network</h2>
+                        <p class="text-base md:text-lg text-brand-textMuted max-w-3xl mx-auto leading-relaxed">
+                            Expand your financial footprint with Invixtus. Introduce capital to our management systems as an authorized partner and secure a perpetual <strong class="text-brand-primary font-bold">10% commission</strong> derived directly from the profits generated by your referred network.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 reveal">
+                        <!-- Rank 1 -->
+                        <div class="corp-card p-6 text-center border-t-4 border-t-slate-400 flex flex-col h-full">
+                            <div class="text-slate-500 mb-4 bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto"><i class="fa-solid fa-user-tie text-2xl"></i></div>
+                            <h4 class="text-brand-textDark font-bold mb-1">Associate</h4>
+                            <p class="text-xs text-brand-textMuted mb-6 font-medium uppercase tracking-wide">Network Entry</p>
+                            <div class="mt-auto bg-slate-50 py-3 rounded-lg text-xs font-bold text-brand-textDark border border-slate-200">10% Profit Share</div>
+                        </div>
+                        
+                        <!-- Rank 2 -->
+                        <div class="corp-card p-6 text-center border-t-4 border-t-[#cd7f32] flex flex-col h-full">
+                            <div class="text-[#cd7f32] mb-4 bg-orange-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto"><i class="fa-solid fa-medal text-2xl"></i></div>
+                            <h4 class="text-brand-textDark font-bold mb-1">Bronze Partner</h4>
+                            <p class="text-xs text-brand-textMuted mb-6 font-medium uppercase tracking-wide">Builder</p>
+                            <div class="mt-auto bg-orange-50 py-3 rounded-lg text-xs font-bold text-[#b8732d] border border-orange-100">10% Profit Share</div>
+                        </div>
+                        
+                        <!-- Rank 3 -->
+                        <div class="corp-card p-6 text-center border-t-4 border-t-slate-300 flex flex-col h-full shadow-md">
+                            <div class="text-slate-600 mb-4 bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto"><i class="fa-solid fa-shield text-2xl"></i></div>
+                            <h4 class="text-brand-textDark font-bold mb-1">Silver Partner</h4>
+                            <p class="text-xs text-brand-textMuted mb-6 font-medium uppercase tracking-wide">Regional Lead</p>
+                            <div class="mt-auto bg-slate-100 py-3 rounded-lg text-xs font-bold text-slate-700 border border-slate-200">10% Profit Share</div>
+                        </div>
+                        
+                        <!-- Rank 4 -->
+                        <div class="corp-card p-6 text-center border-t-4 border-t-brand-primary flex flex-col h-full shadow-lg transform lg:-translate-y-2">
+                            <div class="text-brand-primary mb-4 bg-brand-primaryLight w-16 h-16 rounded-full flex items-center justify-center mx-auto"><i class="fa-solid fa-crown text-2xl"></i></div>
+                            <h4 class="text-brand-textDark font-bold mb-1">Gold Director</h4>
+                            <p class="text-xs text-brand-textMuted mb-6 font-medium uppercase tracking-wide">National Delegate</p>
+                            <div class="mt-auto bg-brand-primaryLight py-3 rounded-lg text-xs font-bold text-brand-primary border border-brand-primary/20">10% Profit Share</div>
+                        </div>
+                        
+                        <!-- Rank 5 -->
+                        <div class="corp-card p-6 text-center border-t-4 border-t-blue-500 relative overflow-hidden flex flex-col h-full">
+                            <div class="absolute top-0 right-0 w-24 h-24 bg-blue-100 opacity-50 blur-2xl rounded-full"></div>
+                            <div class="text-blue-500 mb-4 bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto relative z-10"><i class="fa-solid fa-gem text-2xl"></i></div>
+                            <h4 class="text-brand-textDark font-bold mb-1 relative z-10">Diamond Exec</h4>
+                            <p class="text-xs text-brand-textMuted mb-6 font-medium uppercase tracking-wide relative z-10">Global Board</p>
+                            <div class="mt-auto bg-blue-50 py-3 rounded-lg text-xs font-bold text-blue-700 border border-blue-200 relative z-10">10% + Board Benefits</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ================= PAGE: SECURITY & FRAMEWORK ================= -->
+        <div id="view-framework" class="page-view bg-brand-bgAlt border-t border-brand-border">
+            <section class="py-16 md:py-24">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center mb-16 reveal">
+                        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-100 border border-red-200 text-red-700 text-xs font-bold uppercase tracking-wide mb-6 shadow-sm">
+                            <i class="fa-solid fa-circle-exclamation"></i> Mandatory Compliance Disclosure
+                        </div>
+                        <h2 class="text-3xl md:text-4xl font-extrabold text-brand-textDark mb-6">Fiduciary Risk Protocol</h2>
+                        <p class="text-brand-textMuted max-w-2xl mx-auto text-base md:text-lg">
+                            Transparency and structural principal preservation are the foundations of Invixtus. Please review our strict liquidity rules and capital protection guarantees.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                        
+                        <!-- Capital Protection -->
+                        <div class="corp-card p-8 md:p-10 reveal border-l-4 border-l-brand-success">
+                            <div class="flex items-center gap-4 mb-6 border-b border-brand-border pb-6">
+                                <div class="w-14 h-14 rounded-full bg-brand-successLight flex items-center justify-center text-brand-success">
+                                    <i class="fa-solid fa-vault text-2xl"></i>
+                                </div>
+                                <h3 class="text-xl font-bold text-brand-textDark">The 60/40 Preservation Guarantee</h3>
+                            </div>
+                            <div class="space-y-4 text-sm text-brand-textMuted leading-relaxed">
+                                <p>
+                                    To structurally mitigate catastrophic market exposure, Invixtus enforces a quantitative operational boundary: <strong class="text-brand-textDark">our trading algorithms are restricted to a maximum market exposure of 40%</strong> of aggregate deposited capital.
+                                </p>
+                                <div class="bg-brand-successLight p-4 rounded-lg border border-brand-success/20">
+                                    <p class="text-brand-success font-semibold">
+                                        <i class="fa-solid fa-check-circle mr-1"></i> 60% Cold Reserve Shield
+                                    </p>
+                                    <p class="mt-2 text-xs text-green-800">
+                                        The remaining 60% of all capital is held in isolated, non-traded institutional reserves. Should the firm ever face structural dissolution, this 60% is contractually ring-fenced to be returned immediately to our active investors.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Liquidity Terms -->
+                        <div class="corp-card p-8 md:p-10 reveal border-l-4 border-l-brand-primary" style="transition-delay: 0.1s;">
+                            <div class="flex items-center gap-4 mb-6 border-b border-brand-border pb-6">
+                                <div class="w-14 h-14 rounded-full bg-brand-primaryLight flex items-center justify-center text-brand-primary">
+                                    <i class="fa-solid fa-file-contract text-2xl"></i>
+                                </div>
+                                <h3 class="text-xl font-bold text-brand-textDark">Terms of Liquidity</h3>
+                            </div>
+                            <ul class="space-y-6">
+                                <li class="flex items-start gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                    <div class="mt-1 text-slate-500"><i class="fa-solid fa-lock text-lg"></i></div>
+                                    <div>
+                                        <h4 class="text-brand-textDark font-bold text-sm mb-1">90-Day Initial Maturation</h4>
+                                        <p class="text-xs text-brand-textMuted leading-relaxed">To ensure statistical reliability for our trading volume, newly deposited principal is subject to a mandatory 90-day stabilization lock-in period.</p>
+                                    </div>
+                                </li>
+                                <li class="flex items-start gap-4 bg-orange-50 p-4 rounded-lg border border-orange-100">
+                                    <div class="mt-1 text-brand-primary"><i class="fa-solid fa-money-bill-transfer text-lg"></i></div>
+                                    <div>
+                                        <h4 class="text-brand-textDark font-bold text-sm mb-1">45-Day Profit Distributions</h4>
+                                        <p class="text-xs text-brand-textMuted leading-relaxed">Following activation, your generated yield becomes fully available for withdrawal to your designated accounts at the end of every 45-day cycle.</p>
+                                    </div>
+                                </li>
+                                <li class="flex items-start gap-4 bg-green-50 p-4 rounded-lg border border-green-100">
+                                    <div class="mt-1 text-brand-success"><i class="fa-solid fa-arrow-right-from-bracket text-lg"></i></div>
+                                    <div>
+                                        <h4 class="text-brand-textDark font-bold text-sm mb-1">Daily Principal Access (Post-90 Days)</h4>
+                                        <p class="text-xs text-brand-textMuted leading-relaxed">Upon completion of the 90-day lock-in, your primary capital becomes fully liquid, permitting daily withdrawal requests at your discretion.</p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <footer class="bg-slate-900 relative z-10 pt-16 pb-8 mt-auto border-t-4 border-brand-primary">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-10 border-b border-slate-800 pb-10">
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 flex items-center justify-center bg-brand-primary rounded shadow-md">
+                            <i class="fa-solid fa-chart-pie text-white text-sm"></i>
+                        </div>
+                        <span class="font-bold text-2xl text-white tracking-tight">INVIXTUS</span>
+                    </div>
+                    <span class="text-xs text-slate-400 font-medium uppercase tracking-wider mt-2">Quantitative Asset Management</span>
+                </div>
+                <div class="text-xs text-slate-400 max-w-2xl md:text-right leading-relaxed opacity-80 bg-slate-800/50 p-4 rounded-lg">
+                    <strong class="text-white">REGULATORY NOTICE:</strong> Trading in foreign exchange (Forex) carries risk. Past performance of our algorithms is not a guarantee of future returns. The 60% capital protection mandate applies strictly to the non-traded principal reserve. By utilizing this platform, you acknowledge understanding of the 90-day maturation lock-in and 45-day profit cycles.
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-500">
+                <p>&copy; 2026 Invixtus Management LLC. All rights reserved.</p>
+                <div class="flex flex-wrap justify-center gap-6">
+                    <a href="#framework" class="hover:text-brand-primary transition-colors">Compliance & Risk</a>
+                    <a href="#" class="hover:text-brand-primary transition-colors">Terms of Service</a>
+                    <a href="#" class="hover:text-brand-primary transition-colors">Privacy Policy</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            /* =================================================================
+               1. SPA ROUTING LOGIC (Single Page App Behavior)
+               ================================================================= */
+            const views = document.querySelectorAll('.page-view');
+            const navLinks = document.querySelectorAll('.nav-link, .mobile-nav-link');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            let isMenuOpen = false;
+
+            function handleRouting() {
+                let hash = window.location.hash.substring(1);
+                if (!hash) hash = 'home';
+
+                const targetView = document.getElementById(`view-${hash}`);
+                if (!targetView) return;
+
+                // Hide all views
+                views.forEach(view => {
+                    view.classList.remove('active');
+                });
+                
+                // Update active nav links
+                navLinks.forEach(link => link.classList.remove('active'));
+                document.querySelectorAll(`[data-target="${hash}"]`).forEach(link => {
+                    link.classList.add('active');
+                });
+
+                // Show view
+                targetView.classList.add('active');
+                
+                // Close mobile menu on route change
+                if (isMenuOpen) {
+                    mobileMenu.classList.remove('open');
+                    isMenuOpen = false;
+                }
+
+                // Trigger scroll reveals for newly visible view
+                setTimeout(handleScrollReveal, 50);
+
+                // Redraw chart if performance tab is opened to prevent resize bugs
+                if (hash === 'performance') {
+                    setTimeout(updateCalculatorAndChart, 150);
+                }
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            window.addEventListener('hashchange', handleRouting);
+            handleRouting();
+
+            // Mobile Menu Toggle
+            mobileMenuBtn.addEventListener('click', () => {
+                isMenuOpen = !isMenuOpen;
+                if (isMenuOpen) {
+                    mobileMenu.classList.add('open');
+                } else {
+                    mobileMenu.classList.remove('open');
+                }
+            });
+
+
+            /* =================================================================
+               2. SCROLL REVEAL ANIMATIONS
+               ================================================================= */
+            function handleScrollReveal() {
+                const reveals = document.querySelectorAll('.page-view.active .reveal');
+                
+                reveals.forEach((reveal) => {
+                    const windowHeight = window.innerHeight;
+                    const elementTop = reveal.getBoundingClientRect().top;
+                    const elementVisible = 50;
+
+                    if (elementTop < windowHeight - elementVisible) {
+                        reveal.classList.add('active');
+                    }
+                });
+            }
+
+            window.addEventListener('scroll', handleScrollReveal);
+
+
+            /* =================================================================
+               3. YIELD CALCULATOR & CHART (Tier Logic applied)
+               ================================================================= */
+            const depositSlider = document.getElementById('deposit-slider');
+            const monthsSlider = document.getElementById('months-slider');
+            const depositDisplay = document.getElementById('deposit-display');
+            const monthsDisplay = document.getElementById('months-display');
+            const totalValueDisplay = document.getElementById('total-value');
+            const tierStatusDisplay = document.getElementById('tier-status');
+            
+            let growthChartInstance = null;
+
+            // Tier Definitions
+            function getTierInfo(capital) {
+                if (capital >= 1000) return { rate: 0.05, name: "Tier III Elite Rate", color: '#ea580c' }; // Primary Orange
+                if (capital >= 500) return { rate: 0.04, name: "Tier II Premium Rate", color: '#16a34a' }; // Success Green
+                return { rate: 0.03, name: "Tier I Standard Rate", color: '#475569' }; // Slate
+            }
+
+            function updateCalculatorAndChart() {
+                if (!document.getElementById('view-performance').classList.contains('active')) return;
+
+                const principal = parseFloat(depositSlider.value);
+                const totalMonths = parseInt(monthsSlider.value);
+                
+                const tierInfo = getTierInfo(principal);
+                const monthlyRate = tierInfo.rate;
+                
+                depositDisplay.textContent = `$${principal.toLocaleString()}`;
+                monthsDisplay.textContent = `${totalMonths} Month${totalMonths > 1 ? 's' : ''}`;
+
+                // A = P(1 + r)^n Compound Interest
+                const finalAmount = principal * Math.pow((1 + monthlyRate), totalMonths);
+                totalValueDisplay.textContent = `$${Math.round(finalAmount).toLocaleString()}`;
+                
+                const ratePercentage = (monthlyRate * 100).toFixed(0);
+                tierStatusDisplay.textContent = `Applying ${ratePercentage}% ${tierInfo.name}`;
+                
+                // Update dot color next to tier status
+                tierStatusDisplay.previousElementSibling.style.backgroundColor = tierInfo.color;
+
+                // Chart Data calculation
+                const labels = [];
+                const dataPoints = [];
+                let currentCapital = principal;
+                
+                let step = 1;
+                if (totalMonths >= 24) step = 3;
+                if (totalMonths >= 48) step = 6;
+
+                for (let i = 0; i <= totalMonths; i++) {
+                    if (i % step === 0 || i === totalMonths) {
+                        labels.push(i === 0 ? 'Start' : `Mo ${i}`);
+                        dataPoints.push(Math.round(currentCapital));
+                    }
+                    currentCapital = currentCapital * (1 + monthlyRate);
+                }
+
+                renderChart(labels, dataPoints, tierInfo.color);
+            }
+
+            function renderChart(labels, data, chartColor) {
+                const ctx = document.getElementById('growthChart').getContext('2d');
+                
+                // Create soft gradient for light theme
+                let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                
+                if(chartColor === '#ea580c') { // Orange
+                    gradient.addColorStop(0, 'rgba(234, 88, 12, 0.2)'); 
+                    gradient.addColorStop(1, 'rgba(234, 88, 12, 0.0)');
+                } else if(chartColor === '#16a34a') { // Green
+                    gradient.addColorStop(0, 'rgba(22, 163, 74, 0.2)'); 
+                    gradient.addColorStop(1, 'rgba(22, 163, 74, 0.0)');
+                } else { // Slate
+                    gradient.addColorStop(0, 'rgba(71, 85, 105, 0.2)'); 
+                    gradient.addColorStop(1, 'rgba(71, 85, 105, 0.0)');
+                }
+
+                if (growthChartInstance) {
+                    growthChartInstance.destroy();
+                }
+
+                Chart.defaults.color = '#64748b'; // Tailwind Slate 500
+                Chart.defaults.font.family = 'Inter, sans-serif';
+
+                growthChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Portfolio Value ($)',
+                            data: data,
+                            borderColor: chartColor,
+                            backgroundColor: gradient,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: chartColor,
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 7,
+                            fill: true,
+                            tension: 0.3 // Smooth curves
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.9)', // Dark tooltip for contrast
+                                titleColor: '#f8fafc',
+                                bodyColor: '#cbd5e1',
+                                titleFont: { size: 13, weight: 'bold' },
+                                bodyFont: { size: 14, weight: 'bold' },
+                                padding: 12,
+                                displayColors: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return '$' + context.parsed.y.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                grid: { 
+                                    color: 'rgba(0,0,0,0.04)',
+                                    drawBorder: false,
+                                },
+                                ticks: { 
+                                    callback: function(value) { 
+                                        if (value >= 1000) return '$' + (value/1000) + 'k';
+                                        return '$' + value; 
+                                    },
+                                    font: { weight: '500' }
+                                }
+                            },
+                            x: {
+                                grid: { display: false, drawBorder: false },
+                                ticks: { font: { weight: '500' } }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Listeners for sliders
+            depositSlider.addEventListener('input', updateCalculatorAndChart);
+            monthsSlider.addEventListener('input', updateCalculatorAndChart);
+
+
+            /* =================================================================
+               4. THREE.JS BACKGROUND (Subtle Geometric network for Light Theme)
+               ================================================================= */
+            const initThreeJS = () => {
+                const container = document.getElementById('canvas-container');
+                const scene = new THREE.Scene();
+                
+                const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(0, 0, 100);
+
+                const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                container.appendChild(renderer.domElement);
+
+                // Create a subtle geometric dot pattern
+                const geometry = new THREE.BufferGeometry();
+                const numParticles = 600;
+                const positions = new Float32Array(numParticles * 3);
+                
+                for(let i=0; i < numParticles * 3; i+=3) {
+                    // Spread particles widely
+                    positions[i] = (Math.random() - 0.5) * 300;     // x
+                    positions[i+1] = (Math.random() - 0.5) * 300;   // y
+                    positions[i+2] = (Math.random() - 0.5) * 150;   // z
+                }
+                
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+                // Muted slate/orange particles for light theme
+                const material = new THREE.PointsMaterial({
+                    color: 0xea580c, // Brand Orange
+                    size: 1.5,
+                    transparent: true,
+                    opacity: 0.15 // Very faint
+                });
+
+                const particles = new THREE.Points(geometry, material);
+                scene.add(particles);
+
+                // Add very faint connecting lines (optional, adds tech feel)
+                const lineMaterial = new THREE.LineBasicMaterial({
+                    color: 0x94a3b8, // Slate 400
+                    transparent: true,
+                    opacity: 0.05
+                });
+                const lineObj = new THREE.LineSegments(geometry, lineMaterial);
+                scene.add(lineObj);
+
+                let mouseX = 0;
+                let mouseY = 0;
+
+                document.addEventListener('mousemove', (e) => {
+                    mouseX = (e.clientX - window.innerWidth / 2) * 0.05;
+                    mouseY = (e.clientY - window.innerHeight / 2) * 0.05;
+                });
+
+                const animate = () => {
+                    requestAnimationFrame(animate);
+
+                    // Slowly rotate the entire network
+                    particles.rotation.y += 0.0005;
+                    particles.rotation.x += 0.0002;
+                    lineObj.rotation.y += 0.0005;
+                    lineObj.rotation.x += 0.0002;
+
+                    // Parallax effect on mouse move
+                    camera.position.x += (mouseX - camera.position.x) * 0.05;
+                    camera.position.y += (-mouseY - camera.position.y) * 0.05;
+                    camera.lookAt(scene.position);
+
+                    renderer.render(scene, camera);
+                };
+
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+
+                animate();
+            };
+
+            // Start 3D background with slight delay to ensure DOM readiness
+            setTimeout(initThreeJS, 300); 
+        });
+    </script>
+</body>
+</html>
